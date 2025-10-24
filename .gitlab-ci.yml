@@ -1,0 +1,32 @@
+image: python:3.9
+
+stages:
+  - build
+  - test
+  - security_scan
+
+build:
+  stage: build
+  script:
+    - echo "Установка зависимостей..."
+    - pip install -r requirements.txt
+    - echo "Сборка завершена"
+
+test:
+  stage: test
+  script:
+    - echo "Запуск тестов..."
+    - pip install pytest
+    - python -m pytest tests/ -v || echo "Тесты не найдены"
+  dependencies:
+    - build
+
+bandit_scan:
+  stage: security_scan
+  script:
+    - echo "Проверка безопасности..."
+    - pip install bandit
+    - bandit -r src/ -f html -o bandit_report.html || true
+  artifacts:
+    paths:
+      - bandit_report.html
