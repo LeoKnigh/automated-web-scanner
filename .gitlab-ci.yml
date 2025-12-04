@@ -36,7 +36,7 @@ openvas_network_scan:
   stage: network_scan
   image: python:3.9-slim
   variables:
-    TARGET_HOST: "localhost"
+    TARGET_HOST: "192.168.195.128"
   before_script:
     - pip install gvm-tools
   script:
