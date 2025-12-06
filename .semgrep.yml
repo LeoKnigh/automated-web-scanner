@@ -1,0 +1,40 @@
+# Конфигурация OpenGrep/Semgrep для дипломного проекта
+# Автоматизированный сканер уязвимостей веб-приложений
+
+# Используем официальные наборы правил (policies)
+rules:
+  # 1. OWASP Top 10 правила (самое важное для веб-безопасности)
+  - id: owasp-top-ten
+    pattern: |
+      Набор правил для поиска OWASP Top 10 уязвимостей
+    metadata:
+      category: security
+      technology:
+        - web
+        - python
+      cwe:
+        - "CWE-79: Cross-site Scripting (XSS)"
+        - "CWE-89: SQL Injection"
+        - "CWE-352: Cross-Site Request Forgery (CSRF)"
+  
+  # 2. Python-specific правила безопасности
+  - id: python-security
+    pattern: |
+      Проверка Python кода на уязвимости
+    metadata:
+      category: security
+      language: python
+      
+  # 3. Проверка на hardcoded секреты (пароли, токены, ключи)
+  - id: secrets-detection
+    pattern: |
+      Поиск hardcoded секретов в коде
+    metadata:
+      category: secrets
+      
+  # 4. Общий аудит безопасности
+  - id: security-audit
+    pattern: |
+      Общий аудит безопасности кода
+    metadata:
+      category: audit
