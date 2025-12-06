@@ -6,16 +6,24 @@
 Специальность: Информационная безопасность телекоммуникационных систем
 
 ## Описание
-Система для автоматического сканирования веб-приложений на наличие известных уязвимостей с использованием open-source инструментов.
+Разработан инструмент для автоматического сканирования веб-приложений на наличие уязвимостей. 
+Включает статический (SAST) и динамический (DAST) анализ.
+
+## Функциональность
+- Проверка безопасности HTTP-заголовков
+- Обнаружение SQL-инъекций, XSS
+- Анализ SSL/TLS настроек
+- Интеграция с CI/CD (GitHub Actions)
 
 ## Технологии
-- Python 3.9+
-- Docker
-- GitLab CI/CD
-- OpenVAS, OWASP ZAP
+- Python 3.9
+- Bandit, Semgrep (SAST)
+- OWASP ZAP (DAST)
+- Docker, Docker Compose
+- GitHub Actions
 
 ## Установка
 ```bash
-git clone https://gitlab.com/ваш-username/web-vulnerability-scanner.git
-cd web-vulnerability-scanner
-docker-compose up --build
+git clone https://github.com/LeoKnight/automated-web-scanner.git
+cd automated-web-scanner
+pip install -r requirements.txt
