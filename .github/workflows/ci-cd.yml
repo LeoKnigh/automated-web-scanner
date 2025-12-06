@@ -1,6 +1,12 @@
-name: Security Scanner CI/CD
+name: CI/CD Security Pipeline with OpenGrep
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'  # Ежедневный запуск
 
 jobs:
   build:
@@ -20,19 +26,77 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run tests
-        run: python -m pytest tests/ || echo "No tests"
+        run: python -m pytest tests/ -v || echo "No tests found"
 
-  security:
+  # ===========================================
+  # КРИТИЧЕСКАЯ ЧАСТЬ ДЛЯ ДИПЛОМА: OPENGREP
+  # ===========================================
+  opengrep_security_scan:
     runs-on: ubuntu-latest
     needs: build
+    name: OpenGrep Security Analysis
     steps:
       - uses: actions/checkout@v4
-      - name: Install security tools
-        run: pip install bandit semgrep
-      - name: Run Bandit
-        run: bandit -r src/ || true
-      - name: Run OpenGrep
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install OpenGrep/Semgrep
+        run: pip install semgrep
+      
+      - name: Run OpenGrep OWASP Analysis
         run: |
-          echo "=== OPENGREP SCAN START ==="
-          semgrep --config auto src/
-          echo "=== OPENGREP SCAN END ==="
+          echo "=== OPENGREP OWASP TOP 10 ANALYSIS ==="
+          semgrep --config "p/owasp-top-ten" ./src --sarif -o opengrep-owasp.sarif
+          echo "✅ OWASP анализ завершен"
+          
+      - name: Run OpenGrep Security Audit
+        run: |
+          echo "=== OPENGREP SECURITY AUDIT ==="
+          semgrep --config "p/security-audit" ./src --sarif -o opengrep-audit.sarif
+          echo "✅ Security Audit завершен"
+          
+      - name: Run OpenGrep Python Analysis
+        run: |
+          echo "=== OPENGREP PYTHON ANALYSIS ==="
+          semgrep --config "p/python" ./src --sarif -o opengrep-python.sarif
+          echo "✅ Python анализ завершен"
+          
+      - name: Upload OpenGrep Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengrep-security-reports
+          path: |
+            opengrep-*.sarif
+          retention-days: 30
+
+  generate_diploma_report:
+    runs-on: ubuntu-latest
+    needs: [test, opengrep_security_scan]
+    name: Generate Diploma Report
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create OpenGrep Summary
+        run: |
+          echo "# ОТЧЕТ OPENGREP АНАЛИЗА" > opengrep_summary.md
+          echo "## Дипломный проект: Автоматизированный сканер уязвимостей" >> opengrep_summary.md
+          echo "### Дата: $(date)" >> opengrep_summary.md
+          echo "" >> opengrep_summary.md
+          echo "### Выполненные проверки OpenGrep:" >> opengrep_summary.md
+          echo "1. **OWASP Top 10** - анализ на основные веб-уязвимости" >> opengrep_summary.md
+          echo "2. **Security Audit** - общий аудит безопасности кода" >> opengrep_summary.md
+          echo "3. **Python Security** - анализ специфичных для Python уязвимостей" >> opengrep_summary.md
+          echo "" >> opengrep_summary.md
+          echo "### Результаты:" >> opengrep_summary.md
+          echo "Все отчеты сохранены в формате SARIF для интеграции с GitHub Security." >> opengrep_summary.md
+          
+      - name: Upload Diploma Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: diploma-final-report
+          path: |
+            opengrep_summary.md
+          retention-days: 90
