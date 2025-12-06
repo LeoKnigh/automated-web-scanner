@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # 1. OWASP Juice Shop - современное уязвимое веб-приложение
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: juice-shop
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+
+  # 2. DVWA - классическое уязвимое приложение
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: dvwa
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      - PHP_IDE_CONFIG=serverName=dvwa
+
+  # 3. WordPress с уязвимостями
+  wordpress-vuln:
+    image: wpscanteam/vulnerablewordpress:latest
+    container_name: wordpress-vuln
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+  # 4. WebGoat - учебное приложение от OWASP
+  webgoat:
+    image: webgoat/webgoat:latest
+    container_name: webgoat
+    ports:
+      - "8082:8080"
+    restart: unless-stopped
