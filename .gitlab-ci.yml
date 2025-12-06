@@ -32,94 +32,23 @@ bandit_scan:
     paths:
       - bandit_report.html
 
-openvas_network_scan:
-  stage: network_scan
+code_static_scan:  # Новое название job'а
+  stage: network_scan  # Стадия остаётся прежней!
   image: python:3.9-slim
   variables:
-    TARGET_HOST: "192.168.195.128"
+    # Указываем путь к проекту для сканирования (можно изменить)
+    SCAN_PATH: "./test_project"
   before_script:
-    - pip install gvm-tools
+    - pip install semgrep
+    - git clone https://github.com/opengrep/opengrep-rules.git || echo "Правила уже существуют"
+    - rm -rf ./opengrep-rules/stats/  # Удаляем проблемную папку
   script:
-    - |
-      echo "=== НАЧАЛО СКАНИРОВАНИЯ OPENVAS ==="
-      python3 -c "
-import os
-import sys
-import time
-from gvm.connections import TLSConnection
-from gvm.protocols.gmp import Gmp
-from gvm.transforms import EtreeTransform
-
-print('1. Подключаемся к OpenVAS...')
-host = os.getenv('OPENVAS_HOST', '192.168.195.198')
-port = 9390
-username = os.getenv('OPENVAS_USER')
-password = os.getenv('OPENVAS_PASSWORD')
-
-print(f'   Хост: {host}:{port}')
-
-try:
-    connection = TLSConnection(hostname=host, port=port)
-    transform = EtreeTransform()
-    
-    with Gmp(connection, transform=transform) as gmp:
-        print('2. Аутентифицируемся...')
-        gmp.authenticate(username, password)
-        
-        print('3. Создаем цель для сканирования...')
-        target_response = gmp.create_target(
-            name=f'CI_Scan_${os.getenv(\"CI_PIPELINE_ID\")}',
-            hosts=['localhost'],
-            alive_test='ICMP Ping'
-        )
-        target_id = target_response.xpath('//@id')[0]
-        print(f'   ID цели: {target_id}')
-        
-        print('4. Создаем задачу сканирования...')
-        task_response = gmp.create_task(
-            name=f'CI_Task_${os.getenv(\"CI_PIPELINE_ID\")}',
-            config_id='daba56c8-73ec-11df-a475-002264764cea',
-            target_id=target_id,
-            scanner_id='08b69003-5fc2-4037-a479-93b440211c73'
-        )
-        task_id = task_response.xpath('//@id')[0]
-        print(f'   ID задачи: {task_id}')
-        
-        print('5. Запускаем сканирование...')
-        gmp.start_task(task_id)
-        
-        print('6. Ожидаем завершения...')
-        while True:
-            task = gmp.get_task(task_id)
-            status = task.xpath('//status/text()')[0]
-            print(f'   Текущий статус: {status}')
-            
-            if status == 'Done':
-                print('   Сканирование завершено!')
-                break
-            elif status == 'Stop Requested' or status == 'Interrupted':
-                print(f'   Ошибка: сканирование остановлено')
-                sys.exit(1)
-            
-            print('   Ждем 60 секунд...')
-            time.sleep(60)
-        
-        print('7. Получаем отчет...')
-        report = gmp.get_report(task_id, report_format_id='a994b278-1f62-11e1-96ac-406186ea4fc5')
-        
-        with open('openvas_report.xml', 'w') as f:
-            f.write(report)
-        
-        print('8. Отчет сохранен: openvas_report.xml')
-        print('=== СКАНИРОВАНИЕ ЗАВЕРШЕНО ===')
-        
-except Exception as e:
-    print(f'ОШИБКА: {e}')
-    sys.exit(1)
-"
+    - echo "=== Запуск статического анализа кода с Opengrep/Semgrep ==="
+    # Сканируем указанный путь. Флаг --error завершит job с ошибкой при находке уязвимостей.
+    - semgrep scan --config ./opengrep-rules --sarif --error -o semgrep_report.sarif $SCAN_PATH
+    - echo "=== Сканирование завершено ==="
   artifacts:
     paths:
-      - openvas_report.xml
+      - semgrep_report.sarif  # Сохраняем отчёт в формате SARIF
     expire_in: 1 week
-  when: manual
-  allow_failure: true
+  allow_failure: false  # Пусть пайплайн "падает", если найдены критические проблемы
