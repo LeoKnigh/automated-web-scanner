@@ -52,3 +52,27 @@ code_static_scan:  # Новое название job'а
       - semgrep_report.sarif  # Сохраняем отчёт в формате SARIF
     expire_in: 1 week
   allow_failure: false  # Пусть пайплайн "падает", если найдены критические проблемы
+
+  # НОВЫЙ JOB: Статический анализ кода с Opengrep/Semgrep
+semgrep_sast_scan:
+  stage: security_scan  # Запустится на стадии проверки безопасности
+  image: python:3.9-slim  # Используем лёгкий образ с Python
+  before_script:
+    # 1. Устанавливаем сам Semgrep
+    - pip install semgrep
+    # 2. Клонируем репозиторий с правилами Opengrep прямо в контейнер CI
+    - git clone https://github.com/opengrep/opengrep-rules.git
+    # 3. Удаляем проблемную папку stats (чтобы не было ошибки)
+    - rm -rf ./opengrep-rules/stats/
+  script:
+    # 4. Запускаем сканирование!
+    #    --config ./opengrep-rules  - используем наши правила
+    #    --sarif -o report.sarif    - сохраняем отчёт в формате SARIF с именем report.sarif
+    #    ./src/                     - сканируем папку src (ваш код)
+    - semgrep scan --config ./opengrep-rules --sarif -o report.sarif ./src/
+    - echo "Сканирование завершено. Отчёт сохранён."
+  artifacts:
+    paths:
+      - report.sarif  # ВАЖНО: Указываем, какой файл нужно сохранить
+    expire_in: 1 week  # Отчёт будет храниться в GitLab 1 неделю
+  allow_failure: false  # Если найдутся уязвимости, пайплайн остановится (security gate)
