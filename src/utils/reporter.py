@@ -56,5 +56,36 @@ class Reporter:
                     f.write(f"- **Recommendation:** {vuln.get('recommendation', '')}\n\n")
             else:
                 f.write("## ✅ No vulnerabilities found\n")
+
+    def generate_console_report(self, scan_results):
+        """Generate console output for scan results."""
+        print("\n" + "="*80)
+        print("SECURITY SCAN REPORT")
+        print("="*80)
+        print(f"Target: {scan_results.get('target', 'Unknown')}")
+        print(f"Scan date: {scan_results.get('timestamp', 'Unknown')}")
+        
+        vulns = scan_results.get('vulnerabilities', [])
+        warnings = scan_results.get('warnings', [])
+        info = scan_results.get('info', [])
+        
+        print(f"\nVulnerabilities found: {len(vulns)}")
+        if vulns:
+            for i, vuln in enumerate(vulns, 1):
+                print(f"  {i}. {vuln.get('title', 'Unknown')} "
+                      f"(Severity: {vuln.get('severity', 'Medium')})")
+        
+        print(f"\nWarnings: {len(warnings)}")
+        if warnings:
+            for i, warning in enumerate(warnings, 1):
+                print(f"  {i}. {warning.get('title', 'Unknown')}")
+        
+        print(f"\nInfo messages: {len(info)}")
+        
+        print("\n" + "="*80)
+        print("END OF REPORT")
+        print("="*80)
+        
+        return scan_results
         
         return filepath
