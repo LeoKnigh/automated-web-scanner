@@ -38,22 +38,27 @@ jobs:
         run: |
           pip install bandit semgrep pbr
           
+      - name: Create reports directory
+        run: |
+          mkdir -p security_reports
+          
       - name: Run Bandit SAST Scan
         run: |
           echo "=== BANDIT SAST SCAN ==="
-          bandit -r src/ -f json -o bandit_report.json --exit-zero
+          bandit -r src/ -f json -o security_reports/bandit_report.json --exit-zero
+          bandit -r src/ -f html -o security_reports/bandit_report.html --exit-zero
           echo "✅ Bandit scan completed"
           
       - name: Analyze Bandit Results
         run: |
           echo "=== АНАЛИЗ РЕЗУЛЬТАТОВ BANDIT ==="
-          if [ -f "bandit_report.json" ]; then
-            VULN_COUNT=$(jq '.results | length' bandit_report.json 2>/dev/null || echo "0")
+          if [ -f "security_reports/bandit_report.json" ]; then
+            VULN_COUNT=$(jq '.results | length' security_reports/bandit_report.json 2>/dev/null || echo "0")
             echo "Найдено уязвимостей: $VULN_COUNT"
             
             if [ "$VULN_COUNT" -gt 0 ]; then
               echo "📋 ТОП-3 найденных уязвимостей:"
-              jq -r '.results[0:3][] | "  - \(.issue_text) (Severity: \(.issue_severity))"' bandit_report.json 2>/dev/null || echo "  Не удалось проанализировать результаты"
+              jq -r '.results[0:3][] | "  - \(.issue_text) (Severity: \(.issue_severity))"' security_reports/bandit_report.json 2>/dev/null || echo "  Не удалось проанализировать результаты"
             else
               echo "✅ Уязвимостей не найдено"
             fi
@@ -67,25 +72,33 @@ jobs:
           # Сначала проверяем наличие файла
           if [ -f "custom-opengrep-rules.yml" ]; then
             echo "✅ Custom rules file found"
-            semgrep --config custom-opengrep-rules.yml ./src --sarif -o opengrep_custom.sarif || echo "⚠️ Custom rules scan failed, continuing..."
+            semgrep --config custom-opengrep-rules.yml ./src --json -o security_reports/opengrep_custom.json || echo "⚠️ Custom rules scan failed, continuing..."
+            semgrep --config custom-opengrep-rules.yml ./src --sarif -o security_reports/opengrep_custom.sarif || echo "⚠️ Custom rules scan failed, continuing..."
           else
             echo "⚠️ custom-opengrep-rules.yml not found, using default rules"
-            semgrep --config "p/security-audit" ./src --sarif -o opengrep_custom.sarif
+            semgrep --config "p/security-audit" ./src --json -o security_reports/opengrep_custom.json || echo "⚠️ Custom rules scan failed, continuing..."
           fi
           echo "Custom rules scan completed"
           
       - name: Run OpenGrep OWASP Analysis
         run: |
           echo "=== OPENGREP OWASP ANALYSIS ==="
-          semgrep --config "p/owasp-top-ten" ./src --sarif -o opengrep_owasp.sarif || echo "⚠️ OWASP analysis failed, continuing..."
+          semgrep --config "p/owasp-top-ten" ./src --json -o security_reports/opengrep_owasp.json || echo "⚠️ OWASP analysis failed, continuing..."
+          semgrep --config "p/owasp-top-ten" ./src --sarif -o security_reports/opengrep_owasp.sarif || echo "⚠️ OWASP analysis failed, continuing..."
           echo "OWASP analysis completed"
+          
+      - name: Run OpenGrep Python Analysis
+        run: |
+          echo "=== OPENGREP PYTHON ANALYSIS ==="
+          semgrep --config "p/python" ./src --json -o security_reports/opengrep_python.json || echo "⚠️ Python analysis failed, continuing..."
+          echo "Python analysis completed"
           
       - name: Generate Comparison Report
         run: |
           echo "=== GENERATING COMPARISON REPORT ==="
           
-          # Создаем Markdown отчет с корректным экранированием
-          cat > comparison.md << 'EOF'
+          # Создаем Markdown отчет
+          cat > security_reports/comparison.md << 'EOF'
           # Security Tools Comparison
           ## Bandit vs OpenGrep Results
           
@@ -97,20 +110,23 @@ jobs:
           EOF
           
           # Добавляем результаты Bandit
-          if [ -f "bandit_report.json" ]; then
-            echo '```json' >> comparison.md
-            head -50 bandit_report.json >> comparison.md
-            echo '```' >> comparison.md
+          if [ -f "security_reports/bandit_report.json" ]; then
+            echo '```json' >> security_reports/comparison.md
+            head -20 security_reports/bandit_report.json >> security_reports/comparison.md
+            echo '```' >> security_reports/comparison.md
           fi
           
           echo "✅ Comparison report generated"
+          
+      - name: List generated files
+        run: |
+          echo "=== GENERATED FILES ==="
+          ls -la security_reports/
           
       - name: Upload security reports
         uses: actions/upload-artifact@v4
         with:
           name: security-analysis-reports
           path: |
-            bandit_report.json
-            opengrep_*.sarif
-            comparison.md
+            security_reports/*
           retention-days: 30
