@@ -1,0 +1,44 @@
+name: Upload Reports to Releases
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline for Security Scanner"]
+    types:
+      - completed
+
+jobs:
+  upload-reports:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - name: Download workflow artifacts
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        run-id: ${{ github.event.workflow_run.id }}
+        
+    - name: Create Release with Reports
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          bandit_report.json
+          opengrep_*.sarif
+          comparison.md
+        tag_name: reports-${{ github.run_id }}
+        name: Security Scan Reports
+        body: |
+          # Security Scan Reports
+          Дата: ${{ github.event.workflow_run.created_at }}
+          
+          Содержимое:
+          - Bandit SAST отчет (JSON)
+          - OpenGrep/Semgrep отчеты (SARIF)
+          - Сравнительный анализ инструментов
+          
+          ### Как использовать:
+          1. Скачайте архив
+          2. Откройте bandit_report.json в любом JSON viewer
+          3. Для SARIF файлов используйте https://sarifviewer.azurewebsites.net/
+        draft: false
+        prerelease: false
