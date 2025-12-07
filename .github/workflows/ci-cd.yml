@@ -36,10 +36,10 @@ jobs:
       
       - name: Install security tools
         run: |
-          pip install bandit semgrep
+          pip install bandit semgrep pbr
           
-          - name: Run Bandit SAST Scan
-          run: |
+      - name: Run Bandit SAST Scan
+        run: |
           echo "=== BANDIT SAST SCAN ==="
           bandit -r src/ -f json -o bandit_report.json --exit-zero
           echo "✅ Bandit found vulnerabilities (exit-zero used to continue pipeline)"
@@ -77,21 +77,27 @@ jobs:
       - name: Generate Comparison Report
         run: |
           echo "=== GENERATING COMPARISON REPORT ==="
+          
+          # Создаем Markdown отчет с корректным экранированием
           cat > comparison.md << 'EOF'
           # Security Tools Comparison
           ## Bandit vs OpenGrep Results
-          ### Date: $(date)
           
           Методология сравнения:
-          1. Bandit - специализированный инструмент для статического анализа Python кода
-          2. OpenGrep/Semgrep - универсальный статический анализатор с поддержкой custom правил
+          1. **Bandit** - специализированный инструмент для статического анализа Python кода
+          2. **OpenGrep/Semgrep** - универсальный статический анализатор с поддержкой custom правил
           
           Bandit Findings:
           EOF
           
-          echo '```json' >> comparison.md
-          cat bandit_report.json | head -50 >> comparison.md
-          echo '```' >> comparison.md
+          # Добавляем результаты Bandit
+          if [ -f "bandit_report.json" ]; then
+            echo '```json' >> comparison.md
+            head -50 bandit_report.json >> comparison.md
+            echo '```' >> comparison.md
+          fi
+          
+          echo "✅ Comparison report generated"
           
       - name: Upload security reports
         uses: actions/upload-artifact@v4
