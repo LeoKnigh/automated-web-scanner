@@ -1,0 +1,80 @@
+rules:
+  # Правило 1: Обнаружение SQL-инъекций через конкатенацию строк
+  - id: sql-injection-string-concat
+    pattern: |
+      $QUERY = "SELECT ... " + $USER_INPUT
+    message: |
+      Потенциальная SQL-инъекция через конкатенацию строк. 
+      Используйте параметризованные запросы или ORM.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      technology: [web, python]
+
+  # Правило 2: Обнаружение использования exec/eval с пользовательским вводом
+  - id: dangerous-exec-eval
+    pattern: |
+      exec($USER_INPUT)
+    pattern: |
+      eval($USER_INPUT)
+    message: |
+      Использование exec/eval с пользовательским вводом может привести 
+      к выполнению произвольного кода (RCE).
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-94: Code Injection"
+      technology: [python]
+
+  # Правило 3: Проверка на слабые хэш-функции
+  - id: weak-crypto-hashes
+    pattern: |
+      hashlib.md5(...)
+    pattern: |
+      hashlib.sha1(...)
+    message: |
+      Использование слабых хэш-функций (MD5, SHA1). 
+      Рекомендуется использовать SHA-256 или bcrypt.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      technology: [python]
+
+  # Правило 4: Обнаружение hardcoded секретов (упрощенное)
+  - id: hardcoded-secrets
+    pattern-either:
+      - pattern: |
+          password = "..."
+      - pattern: |
+          api_key = "..."
+      - pattern: |
+          secret = "..."
+    message: |
+      Найден возможный hardcoded секрет. Не храните секреты в коде.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: secrets
+      technology: [python]
+
+  # Правило 5: Проверка на недостаточную валидацию URL
+  - id: ssrf-potential
+    pattern: |
+      requests.get($URL, ...)
+    metavariable-regex:
+      metavariable: $URL
+      regex: ".*user.*|.*input.*|.*param.*"
+    message: |
+      Использование непроверенного пользовательского ввода в URL 
+      может привести к SSRF (Server-Side Request Forgery).
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-918: Server-Side Request Forgery"
+      technology: [web, python]
