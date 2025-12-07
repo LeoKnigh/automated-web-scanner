@@ -22,3 +22,5 @@ automated-web-scanner/
 ├── tests/ # Тесты
 ├── requirements.txt # Зависимости
 └── README.md # Документация
+## CI/CD Status
+![CI/CD](https://github.com/LeoKnigh/automated-web-scanner/actions/workflows/simple-ci.yml/badge.svg)
