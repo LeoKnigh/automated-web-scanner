@@ -9,6 +9,16 @@ import argparse
 import socket
 import ssl
 from datetime import datetime
+from modules.advanced_xss_scanner import AdvancedXSSScanner
+from modules.sql_scanner import AdvancedSQLScanner
+from utils.html_reporter import HTMLReporter
+
+        
+        self.modules = [
+            HeaderScanner(target_url),
+            AdvancedSQLScanner(target_url),  # Используем улучшенный SQL сканер
+            AdvancedXSSScanner(target_url)   # Используем улучшенный XSS сканер
+        ]
 
 def check_ssl(target_url):
     """Проверка SSL сертификата"""
@@ -76,3 +86,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    def generate_report(self, format='console'):
+        """Генерация отчета"""
+        if format == 'json':
+            return json.dumps(self.scan_results, indent=2, ensure_ascii=False)
+        elif format == 'html':
+            reporter = HTMLReporter(self.scan_results)
+            filename = reporter.generate_report()
+            return f"HTML отчет сохранен в: {filename}"
+        
