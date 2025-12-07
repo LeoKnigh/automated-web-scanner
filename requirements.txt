@@ -1,5 +1,18 @@
-requests==2.31.0
-beautifulsoup4==4.12.2
-pytest==7.4.3
-bandit==1.7.5
-semgrep==1.0.0
+# Основные зависимости
+requests>=2.28.0
+beautifulsoup4>=4.11.0
+python-dotenv>=0.21.0
+
+# Инструменты безопасности
+bandit>=1.7.5
+semgrep>=1.76.0
+pbr>=5.11.0  # НУЖЕН ДЛЯ BANDIT!
+
+# Тестирование
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Дополнительные утилиты
+colorama>=0.4.6
+pyyaml>=6.0
+docker>=6.0.0
