@@ -38,11 +38,21 @@ if command -v bandit &> /dev/null; then
     bandit -r ./src -f html -o "${REPORT_DIR}/bandit_report.html"
     
     # Парсим результаты Bandit
+if [ -f "${REPORT_DIR}/bandit_report.json" ]; then
     BANDIT_COUNT=$(jq '.results | length' "${REPORT_DIR}/bandit_report.json" 2>/dev/null || echo "0")
-    echo "✅ Bandit анализ завершен. Найдено проблем: $BANDIT_COUNT"
 else
-    echo "⚠️ Bandit не установлен. Установите: pip install bandit"
+    BANDIT_COUNT="0"
 fi
+
+# Парсим результаты OpenGrep
+OPENGREP_TOTAL=0
+for report in "${REPORT_DIR}"/opengrep_*.json; do
+    if [ -f "$report" ]; then
+        COUNT=$(jq '.results | length' "$report" 2>/dev/null || echo "0")
+        OPENGREP_TOTAL=$((OPENGREP_TOTAL + COUNT))
+        echo "   📊 $(basename $report): $COUNT уязвимостей"
+    fi
+done
 
 # ========================
 # ЗАПУСК OPENGREP/SEMGREP
